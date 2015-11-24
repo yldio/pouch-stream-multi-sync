@@ -24,7 +24,7 @@ function createServer(onDatabase) {
 
     function callback(err, db) {
       if (err) {
-        req.deny(err.message || err);
+        req.deny(err.message || /* istanbul ignore next */ err);
       } else {
         pouchServer.dbs.add(database, db);
         var channel = req.grant();
@@ -36,11 +36,8 @@ function createServer(onDatabase) {
 
   return channelServer;
 
+  /* istanbul ignore next */
   function propagateError(err) {
     channelServer.emit('error', err);
   }
-}
-
-function warn(err) {
-  console.error(err);
 }

@@ -27,6 +27,7 @@ function createClient(createStream) {
 
   function connect() {
     debug('connect, args = %j', arguments);
+    r.reconnect = true;
     r.connect.apply(r, arguments);
     return client;
   }
@@ -35,7 +36,6 @@ function createClient(createStream) {
     debug('handleStream');
     channels = PipeChannels.createClient();
     stream.on('error', propagateError);
-    client.on('error', propagateError);
     stream.pipe(channels).pipe(stream);
     setupSyncs();
   }
@@ -47,11 +47,15 @@ function createClient(createStream) {
 
     debug('sync for db %s, options = %j', db._db_name, options);
 
+    /* istanbul ignore next */
     if (! options.remoteName) {
       throw new Error('need options.remoteName');
     }
 
+    /* istanbul ignore next */
     PouchDB = db.constructor || options.PouchDB;
+
+    /* istanbul ignore next */
     if (! PouchDB) {
       throw new Error('need options.PouchDB');
     }
@@ -64,7 +68,8 @@ function createClient(createStream) {
       db: db,
       options: options,
       ret: ret,
-      canceled: false
+      canceled: false,
+      dbSync: undefined,
     };
 
     syncs.push(sync);
@@ -73,6 +78,7 @@ function createClient(createStream) {
 
     function cancel() {
       sync.canceled = true;
+      debug('canceled sync');
     }
   }
 
@@ -82,15 +88,16 @@ function createClient(createStream) {
 
   function startSync(sync) {
     debug('startSync: %j', sync.options);
+    debug('sync.canceled: %j', sync.canceled);
     var channel;
     var dbSync;
 
+    /* istanbul ignore else */
     if (!sync.canceled) {
       channels.channel({
         database: sync.options.remoteName,
         credentials: sync.options.credentials
       }, onChannel);
-
       sync.ret.cancel = cancel;
     }
 
@@ -105,7 +112,7 @@ function createClient(createStream) {
           remote: remote,
         });
         debug('syncing %j to remote %j', sync.db._db_name, remoteDB._db_name);
-        dbSync = PouchDB.sync(sync.db, remoteDB, {live: true});
+        dbSync = sync.dbSync = PouchDB.sync(sync.db, remoteDB, {live: true});
 
         dbSync.on('change', function(change) {
           debug('change:', change.change.docs);
@@ -117,17 +124,32 @@ function createClient(createStream) {
     }
 
     function cancel() {
-      if (channel) {
-        channel.end();
-      }
       if (dbSync) {
         dbSync.cancel();
       }
     }
+  }
 
+  function cancelAll() {
+    debug('cancelAll');
+    syncs.forEach(function(sync) {
+      sync.canceled = true;
+
+      /* istanbul ignore next */
+      if (sync.dbSync) {
+        debug('canceling sync');
+        sync.dbSync.cancel();
+      }
+
+    });
   }
 
   function destroy() {
+    /* istanbul ignore else */
+    if (channels) {
+      channels.destroy();
+    }
+    cancelAll();
     r.reconnect = false;
     r.disconnect();
   }
@@ -135,5 +157,4 @@ function createClient(createStream) {
   function propagateError(err) {
     client.emit('error', err);
   }
-
 }

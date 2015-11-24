@@ -104,6 +104,7 @@ describe('pouch-stream-multi-sync', function() {
               b: 2,
               _rev: reply.rev,
             });
+            sync.cancel();
             done();
           });
         });
