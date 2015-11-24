@@ -1,6 +1,6 @@
 {
   "name": "pouch-stream-multi-sync",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Sync several PouchDBs through a stream.",
   "main": "index.js",
   "scripts": {
