@@ -1,5 +1,8 @@
 # pouch-stream-multi-sync
 
+[![By](https://img.shields.io/badge/made%20by-yld!-32bbee.svg?style=flat)](http://yld.io/contact?source=github-pouch-stream-multi-sync)
+[![Build Status](https://secure.travis-ci.org/pgte/pouch-stream-multi-sync.svg?branch=master)](http://travis-ci.org/pgte/pouch-stream-multi-sync?branch=master)
+
 Sync several PouchDBs through a stream.
 
 Supports reconnection, negotiation and authentication.
