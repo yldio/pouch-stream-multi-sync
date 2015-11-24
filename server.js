@@ -8,7 +8,7 @@ function createServer(onDatabase) {
   const channelServer = PipeChannels.createServer();
   const pouchServer = PouchStreamServer();
 
-  if (typeof onDatabase != 'function') {
+  if (typeof onDatabase !== 'function') {
     throw new Error('need a request handler as first argument');
   }
 

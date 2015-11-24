@@ -4,7 +4,8 @@
   "description": "Sync several PouchDBs through a stream.",
   "main": "index.js",
   "scripts": {
-    "test": "node --harmony node_modules/istanbul/lib/cli.js cover -- lab -vl && istanbul check-coverage"
+    "test": "node --harmony node_modules/istanbul/lib/cli.js cover -- lab -vl && istanbul check-coverage",
+    "style": "eslint ."
   },
   "repository": {
     "type": "git",
@@ -32,8 +33,13 @@
   },
   "devDependencies": {
     "code": "^2.0.1",
+    "eslint": "^1.10.1",
     "lab": "^7.3.0",
     "memdown": "^1.1.0",
     "pouchdb": "^5.1.0"
-  }
+  },
+  "pre-commit": [
+    "style",
+    "test"
+  ]
 }

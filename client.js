@@ -64,7 +64,7 @@ function createClient(createStream) {
 
     var ret = new EventEmitter();
     ret.cancel = cancel;
-    var sync = {
+    var spec = {
       db: db,
       options: options,
       ret: ret,
@@ -72,13 +72,13 @@ function createClient(createStream) {
       dbSync: undefined,
     };
 
-    syncs.push(sync);
+    syncs.push(spec);
 
     return ret;
 
     function cancel() {
-      sync.canceled = true;
-      debug('canceled sync');
+      spec.canceled = true;
+      debug('canceled spec');
     }
   }
 
@@ -86,37 +86,36 @@ function createClient(createStream) {
     syncs.forEach(startSync);
   }
 
-  function startSync(sync) {
-    debug('startSync: %j', sync.options);
-    debug('sync.canceled: %j', sync.canceled);
-    var channel;
+  function startSync(spec) {
+    debug('startSync: %j', spec.options);
+    debug('sync.canceled: %j', spec.canceled);
     var dbSync;
 
     /* istanbul ignore else */
-    if (!sync.canceled) {
+    if (!spec.canceled) {
       channels.channel({
-        database: sync.options.remoteName,
-        credentials: sync.options.credentials
+        database: spec.options.remoteName,
+        credentials: spec.options.credentials,
       }, onChannel);
-      sync.ret.cancel = cancel;
+      spec.ret.cancel = cancel;
     }
 
     function onChannel(err, channel) {
       if (err) {
-        sync.ret.emit('error', err);
+        spec.ret.emit('error', err);
       } else {
         var remote = PouchRemoteStream();
         var remoteDB = new PouchDB({
-          name: sync.options.remoteName,
+          name: spec.options.remoteName,
           adapter: 'remote',
           remote: remote,
         });
-        debug('syncing %j to remote %j', sync.db._db_name, remoteDB._db_name);
-        dbSync = sync.dbSync = PouchDB.sync(sync.db, remoteDB, {live: true});
+        debug('syncing %j to remote %j', spec.db._db_name, remoteDB._db_name);
+        dbSync = spec.dbSync = PouchDB.sync(spec.db, remoteDB, {live: true});
 
-        dbSync.on('change', function(change) {
+        dbSync.on('change', function onChange(change) {
           debug('change:', change.change.docs);
-          sync.ret.emit('change', change);
+          spec.ret.emit('change', change);
         });
 
         channel.pipe(remote.stream).pipe(channel);
@@ -132,15 +131,14 @@ function createClient(createStream) {
 
   function cancelAll() {
     debug('cancelAll');
-    syncs.forEach(function(sync) {
-      sync.canceled = true;
+    syncs.forEach(function eachSync(spec) {
+      spec.canceled = true;
 
       /* istanbul ignore next */
-      if (sync.dbSync) {
+      if (spec.dbSync) {
         debug('canceling sync');
-        sync.dbSync.cancel();
+        spec.dbSync.cancel();
       }
-
     });
   }
 
