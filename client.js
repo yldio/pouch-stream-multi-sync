@@ -119,6 +119,7 @@ function createClient(createStream) {
           debug('change:', change.change.docs);
           spec.ret.emit('change', change);
         });
+        dbSync.on('error', propagateChannelError);
 
         channel.on('error', propagateChannelError);
         remote.stream.on('error', propagateChannelError);
