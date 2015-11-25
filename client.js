@@ -4,6 +4,7 @@ var EventEmitter = require('events').EventEmitter;
 var Reconnect = require('reconnect-core');
 var PipeChannels = require('pipe-channels');
 var PouchRemoteStream = require('pouch-remote-stream');
+// var timers = require('timers');
 
 module.exports = createClient;
 
@@ -34,8 +35,9 @@ function createClient(createStream) {
 
   function handleStream(stream) {
     debug('handleStream');
-    channels = PipeChannels.createClient();
     stream.on('error', propagateError);
+    channels = PipeChannels.createClient();
+    channels.on('error', propagateError);
     stream.pipe(channels).pipe(stream);
     setupSyncs();
   }
@@ -118,7 +120,16 @@ function createClient(createStream) {
           spec.ret.emit('change', change);
         });
 
+        channel.on('error', propagateChannelError);
+        remote.stream.on('error', propagateChannelError);
         channel.pipe(remote.stream).pipe(channel);
+      }
+    }
+
+    /* istanbul ignore next */
+    function propagateChannelError(channelError) {
+      if (channelError) {
+        spec.ret.emit('error', channelError);
       }
     }
 
@@ -138,18 +149,19 @@ function createClient(createStream) {
       if (spec.dbSync) {
         debug('canceling sync');
         spec.dbSync.cancel();
+        spec.dbSync = undefined;
       }
     });
   }
 
   function destroy() {
     /* istanbul ignore else */
-    if (channels) {
-      channels.destroy();
-    }
     cancelAll();
     r.reconnect = false;
     r.disconnect();
+    // timers.setTimeout(function() {
+    //   r.disconnect();
+    // }, 1000);
   }
 
   function propagateError(err) {

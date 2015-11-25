@@ -29,7 +29,11 @@ function createServer(onDatabase) {
         pouchServer.dbs.add(database, db);
         var channel = req.grant();
         channel.on('error', propagateError);
-        channel.pipe(pouchServer.stream()).pipe(channel);
+
+        var pouchStream = pouchServer.stream();
+        pouchStream.on('error', propagateError);
+
+        channel.pipe(pouchStream).pipe(channel);
       }
     }
   }
@@ -38,6 +42,8 @@ function createServer(onDatabase) {
 
   /* istanbul ignore next */
   function propagateError(err) {
-    channelServer.emit('error', err);
+    if (err) {
+      channelServer.emit('error', err);
+    }
   }
 }

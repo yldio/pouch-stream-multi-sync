@@ -52,8 +52,11 @@ describe('pouch-stream-multi-sync', function() {
       client.connect();
     });
 
-    it('can be destroyed', function(done) {
-      client.destroy();
+    it('can be created again', function(done) {
+      client = PouchSync.createClient(connectClient);
+      client.sync(db, {
+        credentials: { token: 'some token'},
+        remoteName: 'remote name'});
       done();
     });
 
@@ -69,9 +72,13 @@ describe('pouch-stream-multi-sync', function() {
       done();
     });
 
-    it('and connected again', function(done) {
-      client.connect();
+    it('can be destroyed', function(done) {
+      client.destroy();
       done();
+    });
+
+    it('waits a bit', function(done) {
+      setTimeout(done, 1000);
     });
 
     function connectClient() {

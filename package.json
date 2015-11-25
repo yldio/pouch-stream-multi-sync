@@ -19,8 +19,8 @@
   "homepage": "https://github.com/pgte/pouch-stream-multi-sync#readme",
   "tags": [
     "pouchdb",
-    "websocket",
-    "stream"
+    "stream",
+    "sync"
   ],
   "dependencies": {
     "debug": "^2.2.0",
