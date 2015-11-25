@@ -115,16 +115,18 @@ function createClient(createStream) {
         debug('syncing %j to remote %j', spec.db._db_name, remoteDB._db_name);
         dbSync = spec.dbSync = PouchDB.sync(spec.db, remoteDB, {live: true});
 
-        dbSync.on('change', function onChange(change) {
-          debug('change:', change.change.docs);
-          spec.ret.emit('change', change);
-        });
+        dbSync.on('change', onChange);
         dbSync.on('error', propagateChannelError);
 
         channel.on('error', propagateChannelError);
         remote.stream.on('error', propagateChannelError);
         channel.pipe(remote.stream).pipe(channel);
       }
+    }
+
+    function onChange(change) {
+      debug('change:', change.change.docs);
+      spec.ret.emit('change', change);
     }
 
     /* istanbul ignore next */
@@ -135,8 +137,15 @@ function createClient(createStream) {
     }
 
     function cancel() {
-      if (dbSync) {
-        dbSync.cancel();
+      /* istanbul ignore else */
+      if (! spec.canceled) {
+        spec.canceled = true;
+        if (dbSync) {
+          dbSync.removeListener('change', onChange);
+          dbSync.cancel();
+        }
+        dbSync = undefined;
+        spec.dbSync = undefined;
       }
     }
   }
@@ -147,10 +156,9 @@ function createClient(createStream) {
       spec.canceled = true;
 
       /* istanbul ignore next */
-      if (spec.dbSync) {
+      if (spec.cancel) {
         debug('canceling sync');
-        spec.dbSync.cancel();
-        spec.dbSync = undefined;
+        spec.cancel();
       }
     });
   }
