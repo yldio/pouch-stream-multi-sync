@@ -6,6 +6,12 @@ var PipeChannels = require('pipe-channels');
 var PouchRemoteStream = require('pouch-remote-stream');
 // var timers = require('timers');
 
+var interestingSyncEvents = [
+  'change', 'paused', 'active', 'denied', 'complete', 'error'];
+
+var interestingReconnectEvents = [
+  'connect', 'reconnect', 'disconnect'];
+
 module.exports = createClient;
 
 function createClient(createStream) {
@@ -21,6 +27,12 @@ function createClient(createStream) {
   client.connect = connect;
   client.sync = sync;
   client.destroy = client.end = destroy;
+
+  interestingReconnectEvents.forEach(function eachEvent(event) {
+    r.on(event, function onEvent(payload) {
+      client.emit(event, payload);
+    });
+  });
 
   return client;
 
@@ -72,6 +84,7 @@ function createClient(createStream) {
       ret: ret,
       canceled: false,
       dbSync: undefined,
+      cancel: cancel,
     };
 
     syncs.push(spec);
@@ -79,7 +92,12 @@ function createClient(createStream) {
     return ret;
 
     function cancel() {
-      spec.canceled = true;
+      if (! spec.canceled && spec.dbSync) {
+        spec.canceled = true;
+        spec.dbSync.cancel();
+        spec.dbSync.removeAllListeners();
+        spec.dbSync = undefined;
+      }
       debug('canceled spec');
     }
   }
@@ -115,18 +133,16 @@ function createClient(createStream) {
         debug('syncing %j to remote %j', spec.db._db_name, remoteDB._db_name);
         dbSync = spec.dbSync = PouchDB.sync(spec.db, remoteDB, {live: true});
 
-        dbSync.on('change', onChange);
-        dbSync.on('error', propagateChannelError);
+        interestingSyncEvents.forEach(function eachEvent(event) {
+          dbSync.on(event, function onEvent(payload) {
+            spec.ret.emit(event, payload);
+          });
+        });
 
         channel.on('error', propagateChannelError);
         remote.stream.on('error', propagateChannelError);
         channel.pipe(remote.stream).pipe(channel);
       }
-    }
-
-    function onChange(change) {
-      debug('change:', change.change.docs);
-      spec.ret.emit('change', change);
     }
 
     /* istanbul ignore next */
@@ -137,29 +153,14 @@ function createClient(createStream) {
     }
 
     function cancel() {
-      /* istanbul ignore else */
-      if (! spec.canceled) {
-        spec.canceled = true;
-        if (dbSync) {
-          dbSync.removeListener('change', onChange);
-          dbSync.cancel();
-        }
-        dbSync = undefined;
-        spec.dbSync = undefined;
-      }
+      spec.cancel();
     }
   }
 
   function cancelAll() {
     debug('cancelAll');
     syncs.forEach(function eachSync(spec) {
-      spec.canceled = true;
-
-      /* istanbul ignore next */
-      if (spec.cancel) {
-        debug('canceling sync');
-        spec.cancel();
-      }
+      spec.cancel();
     });
   }
 
@@ -168,9 +169,6 @@ function createClient(createStream) {
     cancelAll();
     r.reconnect = false;
     r.disconnect();
-    // timers.setTimeout(function() {
-    //   r.disconnect();
-    // }, 1000);
   }
 
   function propagateError(err) {
