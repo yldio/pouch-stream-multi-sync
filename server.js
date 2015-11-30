@@ -42,7 +42,7 @@ function createServer(onDatabase) {
 
   /* istanbul ignore next */
   function propagateError(err) {
-    if (err) {
+    if (err && err.message !== 'write after end') {
       channelServer.emit('error', err);
     }
   }

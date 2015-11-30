@@ -172,6 +172,9 @@ function createClient(createStream) {
   }
 
   function propagateError(err) {
-    client.emit('error', err);
+    /* istanbul ignore else */
+    if (err && err.message !== 'write after end') {
+      client.emit('error', err);
+    }
   }
 }
