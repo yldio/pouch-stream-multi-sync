@@ -2,9 +2,8 @@ var debug = require('debug')('pouch-stream-multi-sync:client');
 var extend = require('xtend');
 var EventEmitter = require('events').EventEmitter;
 var Reconnect = require('reconnect-core');
-var PipeChannels = require('pipe-channels');
+var PipeChannels = require('pipe-channels/client');
 var PouchRemoteStream = require('pouch-remote-stream');
-// var timers = require('timers');
 
 var interestingSyncEvents = [
   'change', 'paused', 'active', 'denied', 'complete', 'error'];
