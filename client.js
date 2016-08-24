@@ -47,7 +47,7 @@ function createClient(createStream) {
   function handleStream(stream) {
     debug('handleStream');
     stream.on('error', propagateError);
-    channels = PipeChannels.createClient();
+    channels = PipeChannels();
     channels.on('error', propagateError);
     stream.pipe(channels).pipe(stream);
     setupSyncs();
