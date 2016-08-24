@@ -24,7 +24,7 @@
   ],
   "dependencies": {
     "debug": "^2.2.0",
-    "pipe-channels": "^0.1.1",
+    "pipe-channels": "datuxer/pipe-channels",
     "pouch-remote-stream": "^0.3.0",
     "pouch-stream-server": "^0.2.1",
     "reconnect-core": "^1.1.0",
