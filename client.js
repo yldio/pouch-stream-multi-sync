@@ -133,6 +133,10 @@ function createClient(createStream) {
         debug('syncing %j to remote %j', spec.db._db_name, remoteDB._db_name);
         dbSync = spec.dbSync = PouchDB.sync(spec.db, remoteDB, {live: true});
 
+        r.once('disconnect', function onEvent() {
+          dbSync.cancel();
+        });
+
         interestingSyncEvents.forEach(function eachEvent(event) {
           dbSync.on(event, function onEvent(payload) {
             spec.ret.emit(event, payload);
