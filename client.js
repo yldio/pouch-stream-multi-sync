@@ -127,6 +127,7 @@ function createClient(createStream) {
         var remote = PouchRemoteStream();
         var remoteDB = new PouchDB({
           name: spec.options.remoteName,
+          originalName: spec.options.remoteName,
           adapter: 'remote',
           remote: remote,
         });
